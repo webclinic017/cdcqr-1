@@ -108,9 +108,9 @@ def ts_eda(dff0, x, xn, y, lbw = 20):
             lower_bound2 = dff[xn].quantile(0.01)
             upper_bound2 = dff[xn].quantile(0.99)
 
-            mid90 = dff[(dff[xn] <= upper_bound1) & (dff[xn] >= lower_bound1)]
-            outlier8 = dff[((dff[xn] > upper_bound1) & (dff[xn] < upper_bound2)) | (
-                        (dff[xn] < lower_bound1) & (dff[xn] > lower_bound2))]
+            mid90 = dff[(dff[xn] < upper_bound1) & (dff[xn] > lower_bound1)]
+            outlier8 = dff[((dff[xn] >= upper_bound1) & (dff[xn] < upper_bound2)) | (
+                        (dff[xn] <= lower_bound1) & (dff[xn] > lower_bound2))]
             outlier2 = dff[(dff[xn] >= upper_bound2) | (dff[xn] <= lower_bound2)]
             group_dict={}
             group_dict[0] = 'mid90'
@@ -154,7 +154,7 @@ def ts_eda(dff0, x, xn, y, lbw = 20):
             lag2mean_corr[lag] = ret[f].to_frame().rollingcorr(window=10, col=ret[u].shift(lag)).mean().values[0]
         pd.DataFrame(lag2mean_corr, index=['mean_corr']).T.plot()
         plt.title('avg rank corr v.s. signal lag')
-        plt.xlabel('# lag 10min interval')
+        plt.xlabel('# lags')
         plt.ylabel('average rank corr')
         fig.tight_layout()
         return ret
