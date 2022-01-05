@@ -96,7 +96,7 @@ def ts_eda(dff0, x, xn, y, lbw = 20):
 
     n_f = 3
     n_lag = 3
-    n_group = 3
+    n_group = 4
     fig = plt.figure(num=1, figsize=(6 * n_f, 4 * n_lag*n_group))
     dff['yr'] = dff[y].pct_change()
 
@@ -112,11 +112,18 @@ def ts_eda(dff0, x, xn, y, lbw = 20):
             outlier8 = dff[((dff[xn] >= upper_bound1) & (dff[xn] < upper_bound2)) | (
                         (dff[xn] <= lower_bound1) & (dff[xn] > lower_bound2))]
             outlier2 = dff[(dff[xn] >= upper_bound2) | (dff[xn] <= lower_bound2)]
+
+            upper95_99 = dff[((dff[xn] >= upper_bound1) & (dff[xn] < upper_bound2))]
+            upper99 = dff[(dff[xn] >= upper_bound2)]
+            lower1 = dff[(dff[xn] <= lower_bound2)]
+            lower1_5 = dff[((dff[xn] >= lower_bound2) & (dff[xn] < lower_bound1))]
+
             group_dict={}
-            group_dict[0] = 'mid90'
-            group_dict[1] = 'outlier8'
-            group_dict[2] = 'outlier2'
-            for k, data in enumerate([mid90, outlier8, outlier2]):
+            group_dict[0] = 'lower1'
+            group_dict[1] = 'lower1_5'
+            group_dict[2] = 'upper95_99'
+            group_dict[3] = 'upper99'
+            for k, data in enumerate([lower1, lower1_5, upper95_99, upper99]):
                 ax = fig.add_subplot(n_lag * n_group, n_f, i * n_lag * n_group + j * n_group + k + 1)
                 #data.plot.scatter(x='f_lagged', y='yr', c='DarkBlue', s=2, ax=ax)
 
