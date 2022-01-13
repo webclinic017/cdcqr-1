@@ -1,11 +1,12 @@
 from cdcqr.ct.utils import dt2ts
 from cdcqr.common.utils import timeit, camel_case2snake_case
+from cdcqr.common.config import CDQ_REPO_DIR
 from datetime import datetime as dt
 import time
 import requests
 import pandas as pd
 import sys
-sys.path.append('/github/cryptoderiv-quant/')
+sys.path.append(CDQ_REPO_DIR)
 from ct.utils import glassnode
 
 

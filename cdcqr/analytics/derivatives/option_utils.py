@@ -123,12 +123,16 @@ def volfit(df, plot=False, model='errfunc_parabolic_linear2', **kwargs):
     ts = df.index.get_level_values('tm').drop_duplicates()
     # ts=ts[:Nts] if Nts else ts
     #    ipdb.set_trace()
+    #print('kwargs:', kwargs)
     res = []
-    for t in ts:
+    for t in ts: # loop sampling time
+        
         dft = df.loc[[t]].droplevel('tm')
         Ts = dft.index.get_level_values('expire').drop_duplicates()
         #   Ts=Ts[:NTs] if NTs else Ts
-        for T in Ts:
+        #print('Ts:',Ts, len(Ts))
+        for T in Ts: # loop expire date
+            print('--------------sampling time=', t, 'expire=', T)
             dftT = dft.loc[[T]].droplevel('expire').drop_duplicates()
 
             tau = (T - t) / pd.to_timedelta(1, unit='D') / 365
@@ -138,7 +142,7 @@ def volfit(df, plot=False, model='errfunc_parabolic_linear2', **kwargs):
             if len(dftTOTM) == 0:
                 continue
             # after this can be empy cuz all ITM
-            print(f"T={T} t={t}")
+            #print(f"T={T} t={t}")
             # display(dft.loc[[T]])
             # display(dftTOTM)
             # dftTOTM[['aiv','biv']].plot(title=f' t={t} T={T} S={S}',style='o')
@@ -154,9 +158,10 @@ def volfit(df, plot=False, model='errfunc_parabolic_linear2', **kwargs):
             # minres = minimize(partial(errfunc_parabolic_linear1,usevega=usevega,df=dftTOTM,PRICECALL=False,plot=False,kleft=-2,kright=2), [0.2,0.2,0.01,0.01,0.2,-0.2], method='L-BFGS-B', options={'eps': 1e-08, 'maxfun': 100, 'maxiter': 100})
             # TODO: put previous params as initial guess fot t+1, same T
             print(f"optimized params:{minres.x}")
-            print(type(t))
+            #print(type(t))
             dt = pd.to_datetime(t)
-            expiry_date = kwargs['expiry_date']
+            # expiry_date = kwargs['expiry_date']
+            expiry_date = T
             fig_name = '{}_{}'.format(dt.strftime("%Y%m%d%H%M%S"), expiry_date)
             plotres = partial(eval(model), usevega=usevega, df=dftTOTM, PRICECALL=True, plot=plot, info=f't={t} T={T}',
                               kleft=kwargs['kleft'], kright=kwargs['kright'], fig_name=fig_name)(minres.x)
@@ -225,7 +230,7 @@ def errfunc_parabolic_linear6(x, usevega=False, useweights=False, df=None, PRICE
         df[['aiv', 'biv', 'myvol', 'markiv', 'logKFtau']].query("abs(logKFtau)<1").set_index('logKFtau').plot(
             title=f"{info} s={S} {df['insidebidask'].sum() / len(df):.1%} vols in bidask ", style='.-')  # remove markiv
         fig_name = kwargs.get('fig_name')
-        plt.savefig(os.path.join(LOCAL_FIGURE_DIR, 'volfit', '{}.png'.format(fig_name)))
+        #plt.savefig(os.path.join(LOCAL_FIGURE_DIR, 'volfit', '{}.png'.format(fig_name)))
         plt.show()
         
         
