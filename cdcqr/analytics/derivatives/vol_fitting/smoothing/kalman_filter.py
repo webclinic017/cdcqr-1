@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from numpy.linalg import inv
 
 
 def getMeasurement(updateNumber):
@@ -16,29 +17,31 @@ def getMeasurement(updateNumber):
 
 
 def simple_kalman_filter(z, x_prev, sigma1, h_mat, sigma2):
-    n = 7
-    m = np.shape(h_mat)[0]
+    n = 7  # dimension of signal process, p0, p1, ... p5
+    m = np.shape(h_mat)[0] # dimension of obs process 31, 31 strikes
+    filter_ = simple_kalman_filter
+    filter_.x = x_prev           # prev signal states
+    filter_.P = sigma1*np.eye(n) # signal states cov
+    filter_.A = np.eye(n)        # signal transition matrix
+    filter_.H = h_mat            # signal2obs mat
+    filter_.HT = filter_.H.T      
+    filter_.Q = sigma1*np.eye(n) # signal process noise cov
+    filter_.R = sigma2*np.eye(m) # obs process noise cov
     
-    filter.x = x_prev
-    filter.P = sigma1*np.eye(n)
-    filter.A = np.eye(n)
-    filter.H = h_mat
-    filter.HT = filter.H.T
-    filter.Q = sigma2*np.eye(n)
         
     # Predict State Forward
-    x_p = filter.A.dot(filter.x)
+    x_p = filter_.A.dot(filter_.x)
     # Predict Covariance Forward
-    P_p = filter.A.dot(filter.P).dot(filter.A.T) + filter.Q
+    P_p = filter_.A.dot(filter_.P).dot(filter_.A.T) + filter_.Q
     # Compute Kalman Gain
-    S = filter.H.dot(P_p).dot(filter.HT)
-    K = P_p.dot(filter.HT)*(1/S)
+    S = filter_.H.dot(P_p).dot(filter_.HT) + filter_.R
+    K = P_p.dot(filter_.HT).dot(inv(S))
     # Estimate State
-    residual = z - filter.H.dot(x_p)
-    filter.x = x_p + K*residual
+    residual = z - filter_.H.dot(x_p)
+    filter_.x = x_p + K.dot(residual)
     # Estimate Covariance
-    filter.P = P_p - K.dot(filter.H).dot(P_p)
-    return filter.x
+    # filter_.P = P_p - K.dot(filter_.H).dot(P_p)
+    return filter_.x
 
 
 def testFilter():

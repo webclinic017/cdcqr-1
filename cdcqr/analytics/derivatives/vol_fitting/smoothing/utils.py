@@ -3,8 +3,7 @@ sys.path.insert(1,"/core/github/cryptoderiv-quant-lib")
 import pandas as pd
 import numpy as np
 from cryptoderiv_quantlib import VolModels
-from cryptoderiv_quantlib import VolCurve, VolSurface, StickyOptions
-
+from scipy.interpolate import interp1d
 
 
 def cumsum_getTEvents(gRaw,h):
@@ -16,10 +15,10 @@ def cumsum_getTEvents(gRaw,h):
         sPos = max(0,sPos+diff.loc[i])
         sNeg = min(0,sNeg+diff.loc[i])
         if sNeg<-h:
-            sNeg=0;
+            sNeg=0
             tEvents.append(i)
         elif sPos>h:
-            sPos=0;
+            sPos=0
             tEvents.append(i)
     # return pd.DatetimeIndex(tEvents)
     return tEvents
