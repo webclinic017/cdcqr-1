@@ -16,12 +16,12 @@ def getMeasurement(updateNumber):
     return [z, getMeasurement.currentPosition, getMeasurement.currentVelocity]
 
 
-def simple_kalman_filter(z, x_prev, sigma0, h_mat, sigma1, sigma2):
+def simple_kalman_filter(z, x_prev, sigma1, h_mat, sigma2):
     n = 7  # dimension of signal process, p0, p1, ... p5
     m = np.shape(h_mat)[0] # dimension of obs process 31, 31 strikes
     filter_ = simple_kalman_filter
     filter_.x = x_prev           # prev signal states
-    filter_.P = sigma0*np.eye(n) # signal states cov
+    filter_.P = sigma1*np.eye(n) # signal states cov
     filter_.A = np.eye(n)        # signal transition matrix
     filter_.H = h_mat            # signal2obs mat
     filter_.HT = filter_.H.T      

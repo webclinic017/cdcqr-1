@@ -8,7 +8,6 @@ import pandas as pd
 import sys
 sys.path.append(CDQ_REPO_DIR)
 from ct.utils import glassnode
-from cdcqr.common.config import GLASSNODE_API_KEY as GLASSKEY
 
 
 @timeit
@@ -38,42 +37,3 @@ def url_parser(url):
     att_dict['feature'] = camel_case2snake_case(feature_camel_case)
     att_dict['category'] = att_dict['m'].split('.')[0]
     return att_dict
-
-
-def glassnode1(url='https://api.glassnode.com/v1/metrics/transactions/transfers_volume_to_exchanges_mean',a='BTC',i='10m',s=dt(2021,8,1),Nretry=0,price=False, priceohlc=False,thresh=6,periods=1,log=False):
-    """
-    a BTC,ETH
-    i 1month,1w,24h,1h,10m
-    s dt(2021,8,1), '2021-08-01'
-    url https://api.  ,   /metrics/transactions/transfers_volume_to_exchanges_mean , ~metrics~transactions~
-    
-    """
-    try:
-        timestamp=dt2ts(s,delta='1s')
-    except:
-        timestamp=dt2ts(dt.fromisoformat(s),delta='1s')
-    
-    if '~' in url:
-        url=url.replace('~','/')
-    
-    if 'http' not in url:
-        url='https://api.glassnode.com/v1/'+url
-    #print(f"url={url} i={i} s={s}")
-    
-    try:
-        res = requests.get(url,params={'a': a,'i':i,'s':timestamp,'api_key': GLASSKEY}) #, 's':1629500000
-        return res
-    except Exception as e:
-        print(e)
-    
-#         df = pd.read_json(res.text, convert_dates=['t']).set_index('t') 
-#     except Exception as e:
-#         #print(e,res.text)
-#         if Nretry==0:
-#             raise e
-#         time.sleep(120)
-#         return glassnode(url=url,a=a,i=i,s=s,Nretry=Nretry-1)
-    
-   
-    
-#     return df
