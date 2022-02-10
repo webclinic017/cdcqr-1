@@ -9,6 +9,8 @@ from cdcqr.common.config import LOCAL_DATA_DIR
 from functools import wraps
 import re
 from pandas_flavor import register_dataframe_method
+from IPython.display import Audio
+sound_file = '/core/tmp/ding.wav'
 
 
 def timeit(method):
@@ -155,3 +157,9 @@ def load_df(name, file_format='pickle'):
 
 def camel_case2snake_case(camel_case):
     return re.sub(r'(?<!^)(?=[A-Z])', '_', camel_case).lower()
+
+
+def play_sound():
+    print('playing sound')
+    Audio(sound_file, autoplay=True)
+    

@@ -61,30 +61,58 @@ class GlassnodeData:
         df = df.drop(labels=[1, 2, 3, 'path', 'formats'], axis=1)
         return df
 
-    def load_features(self, f_list, asset, resolution='24h'):
+    def load_features(self, f_list, assets, resolution=None):
         dfs = []
+        if isinstance(assets, str):
+            assets = [assets]
         for f in f_list:
-            df = self._get_feature_df(f, asset, resolution)
-            dfs.append(df)
+            for asset in assets:
+                df = self._get_feature_df(f, asset, resolution)
+                dfs.append(df)
         df_merged = reduce(lambda  left,right: pd.merge(left,right,on=['t'],
                                             how='outer'), dfs).set_index('t')
         return df_merged
 
 
-    def _get_feature_df(self, f, asset, resolution):
+    def _get_feature_df(self, f, asset, resolution=None):
+        df = self._get_feature_raw_df(f, asset, resolution=resolution)
+        cols = list(df.columns)
+        if 'o' in cols:
+            cols.remove('o')
+            dfa = df[cols]
+            try:
+                dfa = dfa.to_frame()
+            except:
+                pass
+            df1 = pd.concat([dfa, df['o'].apply(pd.Series)], axis=1)
+        else:
+            df1 = df
+        cols = [x for x in df1.columns if x != 't']
+        rename_dict={}
+        for col in cols:
+            if col=='v':
+                rename_dict[col] = '{}-{}'.format(asset, f)
+            else:
+                rename_dict[col] = '{}-{}-{}'.format(asset, f, col)
+        df1.rename(columns=rename_dict, inplace=True)
+        return df1
+
+
+    def _get_feature_raw_df(self, f, asset, resolution):
         f = camel_case2snake_case(f)
         category = self.get_feature_category(f)
-
         assets = self.get_feature_assets(f)
         assert asset in assets, "asset '{}' not in available asset {} for {}".format(asset, assets, f)
         
-        resolutions = self.get_feature_resolutions(f)
-        assert resolution in resolutions, "resolution '{}' not in {}".format(resolution, resolutions)
+        if resolution:
+            resolutions = self.get_feature_resolutions(f)
+            assert resolution in resolutions, "resolution '{}' not in {} for feature '{}'".format(resolution, resolutions, f)
+        else:
+            resolution = self.get_feature_best_resolutions(f)
         
-        print('loading', category, f, asset, resolution)
+        print('loading {}/{} asset={}, resolution={}'.format(category, f, asset, resolution))
         res = requests.get('https://api.glassnode.com/v1/metrics/{}/{}'.format(category, f),
             params={'a': asset, 'i': resolution, 'api_key': GLASSNODE_API_KEY})
         
-        df = pd.read_json(res.text, convert_dates=['t']).rename(columns={'v':'{}_{}'.format(asset, f)})
-        
+        df = pd.read_json(res.text, convert_dates=['t'])
         return df

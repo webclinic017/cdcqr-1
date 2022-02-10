@@ -10,6 +10,7 @@ from numpy.lib.stride_tricks import as_strided
 from numpy.lib import pad
 import os
 from cdcqr.common.config import LOCAL_FIGURE_DIR
+from scipy.stats import pearsonr
 
 
 
@@ -176,3 +177,14 @@ def ts_eda(dff0, x, xn, y, lbw = 50, save_fig=False):
         plt.ylabel('average rank corr')
         fig.tight_layout()
         return ret
+
+
+def calculate_corr_pvalues(df):
+    df = df.dropna()._get_numeric_data()
+    dfcols = pd.DataFrame(columns=df.columns)
+    pvalues = dfcols.transpose().join(dfcols, how='outer')
+    for r in df.columns:
+        for c in df.columns:
+            pvalues[r][c] = round(pearsonr(df[r], df[c])[1], 4)
+    return pvalues
+
