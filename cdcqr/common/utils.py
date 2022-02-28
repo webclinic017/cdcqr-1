@@ -1,5 +1,6 @@
 import logging
 import multiprocessing
+import multiprocess as mp
 import os
 import pandas as pd
 import sys
@@ -10,7 +11,15 @@ from functools import wraps
 import re
 from pandas_flavor import register_dataframe_method
 from IPython.display import Audio
-sound_file = '/core/tmp/ding.wav'
+from typing import Dict, Any
+import hashlib
+import json
+import logging
+LOG_FILENAME = '/core/logs/backtest.log'
+logging.basicConfig(
+    format='%(asctime)s %(levelname)-8s %(message)s',
+    level=logging.INFO,
+    datefmt='%Y-%m-%d %H:%M:%S',filename=LOG_FILENAME)
 
 
 def timeit(method):
@@ -35,18 +44,41 @@ def timeit(method):
 def parallel_jobs(func2apply, domain_list,
                   message='processing individual tasks', num_process=None):
     """
-    use multiprocessing module to parallel job
+    use multiprocess module to parallel job
     return a dictionary containing key and corresponding results
     """
     ret_dict = OrderedDict()
-    with multiprocessing.Pool(num_process) as pool:
+    with mp.Pool(num_process) as pool:
         for idx, ret in enumerate(
-                pool.imap_unordered(func2apply, domain_list)):
-            ret_dict[domain_list[idx]] = ret
+                pool.imap_unordered(func2apply, domain_list, )):
+            key_ = domain_list[idx]
+            if isinstance(key_, dict):
+                key_ = json.dumps(key_)
+            ret_dict[key_] = ret
             sys.stderr.write('\r{0} {1:%}'.format(message,
                                                   idx / len(domain_list)))
 
     return ret_dict
+
+
+@timeit
+def parallel_jobs2(func2apply, domain_list,
+                  message='processing individual tasks', num_process=None):
+    """
+    use multiprocess module to parallel job
+    return a dictionary containing key and corresponding results
+    """
+
+    result = []
+    with mp.Pool(num_process) as pool:
+        for idx, ret in enumerate(
+                pool.apply_async(func2apply, domain_list, callback=result.append)):
+ 
+            sys.stderr.write('\r{0} {1:%}'.format(message,
+                                                  idx / len(domain_list)))
+
+    return result  
+
 
 
 def print_time_from_t0(start_time):
@@ -130,6 +162,7 @@ def save(df, name='no_name', file_format='pickle'):
     elif file_format=='csv':
         df.to_csv(file_path)
     print('saved df to {}'.format(file_path))
+    logging.info('Data saved to {}'.format(file_path))
 
 
 def load_df(name, file_format='pickle'):
@@ -161,5 +194,17 @@ def camel_case2snake_case(camel_case):
 
 def play_sound():
     print('playing sound')
+    sound_file = '/core/tmp/ding.wav'
     Audio(sound_file, autoplay=True)
     
+    
+def dict_hash(dictionary: Dict[str, Any]) -> str:
+    """MD5 hash of a dictionary."""
+    dhash = hashlib.md5()
+    # We need to sort arguments so {'a': 1, 'b': 2} is
+    # the same as {'b': 2, 'a': 1}
+    encoded = json.dumps(dictionary, sort_keys=True).encode()
+    dhash.update(encoded)
+    hexfull = dhash.hexdigest()
+    hexshort = hexfull[:7]
+    return hexshort

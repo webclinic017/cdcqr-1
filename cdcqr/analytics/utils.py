@@ -188,3 +188,5 @@ def calculate_corr_pvalues(df):
             pvalues[r][c] = round(pearsonr(df[r], df[c])[1], 4)
     return pvalues
 
+
+pctrank = lambda x: pd.Series(x).rank(pct=True).iloc[-1]
