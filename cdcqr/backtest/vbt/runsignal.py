@@ -1,4 +1,5 @@
-#alfafactory
+#ct.alfafactory
+
 import os
 os.environ["NUMEXPR_MAX_THREADS"] = "8"
 
@@ -437,3 +438,45 @@ def runsignal(price,signal,tp=6,sl=2,ts=5,n1=1,n2=100,rsil=30,rsih=50,rsilag=14,
     res['dfs']=dfs
         
     return res
+
+
+def wrapped_runsignal(param_dict):
+    price = param_dict['price']
+    signal = param_dict['signal']
+    tp = param_dict['tp']
+    sl = param_dict['sl']
+    n1 = param_dict['n1']
+    n2 = param_dict['n2']
+    qtl = param_dict['qtl']
+    lbw = param_dict['lbw']
+    price = param_dict['price']
+    signal = param_dict['signal']
+    rsil = param_dict['rsil']
+    rsih = param_dict['rsih']
+    side = param_dict['side']
+    rsilag = param_dict['rsilag']
+    maf = param_dict['maf']
+    mas = param_dict['mas']
+    size = param_dict['size']
+    fees= param_dict['fees']
+    freq = param_dict['freq']
+    init_cash = param_dict['init_cash']
+    request = param_dict['request']
+    signalid = param_dict['signalid']
+    num_weeks = param_dict['num_weeks']
+    if side=='long':
+        short=False
+    elif side =='short':
+        short=True
+    else:
+        raise('side is either long and short')
+
+    ressig=runsignal(price=price,signal=signal,tp=tp,sl=sl,ts=sl,n1=n1,n2=n2,rsil=rsil,rsih=rsih,rsilag=rsilag,
+                maf=maf,mas=mas,short=short,size=size,fees=fees,freq=freq,init_cash=init_cash,request=request)
+    res=[]
+    for k in ressig:
+        resd={"signalid":signalid,"short":short,"tp":tp,"sl":sl,'k':k, 'lbw':lbw, 'qtl':qtl,
+            'sr':ressig[k].sharpe_ratio(),'n1':n1,'n2':n2,'tr':ressig[k].total_return(),'ntrades':ressig[k].trades.count()/num_weeks} 
+        res.append(resd)
+    return res
+    

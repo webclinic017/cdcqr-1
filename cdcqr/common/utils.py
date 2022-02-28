@@ -68,16 +68,15 @@ def parallel_jobs2(func2apply, domain_list,
     use multiprocess module to parallel job
     return a dictionary containing key and corresponding results
     """
-
-    result = []
+    ret_dict = OrderedDict()
     with mp.Pool(num_process) as pool:
         for idx, ret in enumerate(
-                pool.apply_async(func2apply, domain_list, callback=result.append)):
- 
+                pool.imap_unordered(func2apply, domain_list, )):
+            ret_dict[idx] = ret
             sys.stderr.write('\r{0} {1:%}'.format(message,
                                                   idx / len(domain_list)))
 
-    return result  
+    return ret_dict
 
 
 

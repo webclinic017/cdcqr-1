@@ -130,4 +130,5 @@ dmypy.json
 .idea
 .png
 .html
+*.html
 cdcqr/common/config.py
