@@ -13,7 +13,7 @@ import warnings
 warnings.filterwarnings("ignore")
 from cdcqr.common.utils import LOCAL_DATA_DIR
 import json
-from cdcqr.data.glassnode.features.feature_loaders import produce_feature_BTCSSR
+from cdcqr.data.glassnode.features.feature_loaders import produce_feature_BTCSSR, produce_feature_PERPFundingRate
 from cdcqr.backtest.vbt.runsignal import wrapped_runsignal
 from cdcqr.backtest.vbt.sample_params import param_dict
 import itertools
@@ -23,12 +23,14 @@ pctrank = lambda x: pd.Series(x).rank(pct=True).iloc[-1]
 
 
 if __name__ == '__main__':
-
+    # load price
     price = pd.read_pickle(os.path.join(LOCAL_DATA_DIR,'BTC-PERP@ftx.pickle'))
+    
+    #load feature
     asset = 'BTC'
-    feature = 'BTCSSR'
-    signalid = 'long-BTCSSR_pctrank'
-    feature_data_fname = produce_feature_BTCSSR()
+    feature = 'BTCPERPFundingRate'
+    signalid = 'long-BTCPERPFundingRate'
+    feature_data_fname = produce_feature_PERPFundingRate()
     feature_data_dir = os.path.join(LOCAL_DATA_DIR, 'feature_data', '{}.pickle'.format(feature_data_fname))
     logging.info('loading feature data {}'.format(feature_data_dir))
     df4a = pd.read_pickle(feature_data_dir)
@@ -37,14 +39,25 @@ if __name__ == '__main__':
     qtl_params = [0.995, 0.99, 0.975, 0.96]
     lbw_params = [1000, 2000, 3000, 4000]
 
-    tp_params = [3, 5, 7, 10] # 
-    sl_params = [1, 2, 3 , 5] # ts = sl 
-    n1_params = [1, 10, 100]
-    n2_params = [101, 200, 500, 1000, 2000]
-    rsil_params = [10, 20]
-    rsilag_params = [14]
-    maf_params = [5, 60]
-    mas_params = [100, 200]
+    test=False
+    if test:
+        tp_params = [3, 5] # 
+        sl_params = [1, 2] # ts = sl 
+        n1_params = [1, 10]
+        n2_params = [101]
+        rsil_params = [10]
+        rsilag_params = [14]
+        maf_params = [5]
+        mas_params = [100, 200]
+    else:
+        tp_params = [3, 5, 7, 10] # 
+        sl_params = [1, 2, 3 , 5] # ts = sl 
+        n1_params = [1, 10, 100]
+        n2_params = [101, 200, 500, 1000, 2000]
+        rsil_params = [10, 20] # 2 runs with rsil rsilag
+        rsilag_params = [14]
+        maf_params = [5, 60] # 4 runs for maf/mas
+        mas_params = [100, 200]
 
     backtest_info = {}
     backtest_info['asset'] = asset
@@ -71,6 +84,7 @@ if __name__ == '__main__':
 
     logging.info('generating backtest configs')
     backtest_configs = []
+    rsi_or_ma=['rsi', 'ma']
     for lbw in lbw_params:
         feature_pctrank = '{}_pctrank{}'.format(feature, lbw)
         df4a[feature_pctrank] = df4a[feature].rolling(lbw).apply(pctrank)
@@ -82,7 +96,6 @@ if __name__ == '__main__':
                 for sl in sl_params:
                     for n1 in n1_params:
                         for n2 in n2_params:
-
                             for rsil in rsil_params:
                                 rsih = 100-rsil
                                 for maf in maf_params:
@@ -107,7 +120,7 @@ if __name__ == '__main__':
                                             backtest_configs.append(param_dict)
 
 
-    logging.info('running backtest jobs')
+    logging.info('running {} backtest jobs'.format(len(backtest_configs)))
     ret = parallel_jobs2(wrapped_runsignal, backtest_configs)
     all_ret_list = list(itertools.chain.from_iterable(ret.values()))
 

@@ -1,5 +1,6 @@
 #ct.alfafactory
 
+import logging
 import os
 os.environ["NUMEXPR_MAX_THREADS"] = "8"
 
@@ -9,6 +10,7 @@ from numba import njit
 
 import numpy as np
 import pandas as pd
+import inspect 
 
 DF = pd.DataFrame
 
@@ -240,7 +242,6 @@ def runsignallight(price,signal,n=100,short=True,fees=0.0007):
 def runsignal(price,signal,tp=6,sl=2,ts=5,n1=1,n2=100,rsil=30,rsih=50,rsilag=14,maf=5,mas=15,short=False,size=np.inf,fees=0.07/100,freq='1Min',init_cash=10000,request=None):
     
     res = {}
-    ifigs = []
 
     if request is None:
         request = []
@@ -259,12 +260,6 @@ def runsignal(price,signal,tp=6,sl=2,ts=5,n1=1,n2=100,rsil=30,rsih=50,rsilag=14,
     #clean price
     price=price.resample(freq).last()
 
-    if 'iplot' in request:
-        fig=signal.astype(float).iplot(title='signal', asFigure=True)
-        fig.update_layout(width=1500)
-        ifigs.append(fig)
-
-
     signalclean=pd.Series.vbt.signals.empty_like(price['c'])
     signalclean.loc[signal[signal].index]=True            
     signal=signalclean
@@ -280,8 +275,6 @@ def runsignal(price,signal,tp=6,sl=2,ts=5,n1=1,n2=100,rsil=30,rsih=50,rsilag=14,
 
     fastmawindow=maf
     slowmawindow=mas
-#     signal=pd.Series.vbt.signals.empty_like(price['c'])
-#     signal.loc[glass[glass['v'].shift(2)>700].index]=True
 
     if runn:
         entryn = n1  # entry after n periods
@@ -290,15 +283,9 @@ def runsignal(price,signal,tp=6,sl=2,ts=5,n1=1,n2=100,rsil=30,rsih=50,rsilag=14,
         exitsnn=entriesn.shift(exitn).fillna(False)
         entriesnn_clean,exitsnn_clean=cleaninorder(entriesn,exitsnn)
 
-    #entries.loc[liqs.resample("1Min").last().fillna(0).rolling(window=10).mean()['v'].reindex(entries.index)<1]=False
-    #entries.loc[glass.resample("1Min").last().fillna(0).rolling(10).max()['v'].reindex(entries.index)<200]=False
-    #fast_ma, slow_ma = vbt.MA.run_combs(price['c'], window=np.arange(5, 40,2),ewm=True, r=2, short_names=['fast', 'slow'])
     if runma:
         fastma=vbt.MA.run(price['c'], window=fastmawindow,ewm=True)
         slowma=vbt.MA.run(price['c'], window=slowmawindow,ewm=True)
-
-        #pf = vbt.Portfolio.from_signals(close=dftest['c'], open=dftest['o'],high=dftest['h'],low=dftest['l'],
-        #            short_entries=ypred,exits=None, sl_stop=sl/100. if sl is not None else None,tp_stop=tp/100. if tp is not None else None,sl_trail=ts/100. if ts is not None else None, price=dftest['o'],init_cash=10000)
 
         if not SHORT:
             entriesma = fastma.ma_above(slowma, crossover=True)&signal
@@ -310,43 +297,21 @@ def runsignal(price,signal,tp=6,sl=2,ts=5,n1=1,n2=100,rsil=30,rsih=50,rsilag=14,
         if runn:
             exitsman=entriesma.shift(exitn).fillna(False)
             entriesman_clean,exitsman_clean=cleaninorder(entriesma,exitsman)
-
-    if 'plotind' in request:
-        rsi.plot()
-        fig = price['c'].vbt.plot(trace_kwargs=dict(name='Price'))
-        fig = fast_ma.ma.vbt.plot(trace_kwargs=dict(name='Fast MA'), fig=fig)
-        fig = slow_ma.ma.vbt.plot(trace_kwargs=dict(name='Slow MA'), fig=fig)
-        fig = entriesma.vbt.signals.plot_as_entry_markers(price['c'], fig=fig)
-        fig = exitsma.vbt.signals.plot_as_exit_markers(price['c'], fig=fig)
-        fig.show_svg()    
-
-    #rsi = vbt.IndicatorFactory.from_talib('RSI').run(price['c'], timeperiod=[rsiperiod])
     
     if runrsi:
         rsi=vbt.RSI.run(price['c'],window=rsiperiod)
         if not SHORT:
             entriesrsi = rsi.rsi_above(rsiabove, crossover=True)&signal
             exitsrsi = rsi.rsi_below(rsibelow, crossover=True)
-        #     entriesrsi = rsi.real_above(rsibelow, crossover=True)
-        #     exitsrsi = rsi.real_below(rsiabove, crossover=True)
+
         else:
             entriesrsi = rsi.rsi_below(rsibelow, crossover=True)&signal
             exitsrsi = rsi.rsi_above(rsiabove, crossover=True)
 
-        #     entriesrsi = rsi.real_below(rsibelow, crossover=True)
-        #     exitsrsi = rsi.real_above(rsiabove, crossover=True)
         if runn:
             exitsrsi_n=entriesrsi.shift(exitn).fillna(False)
             entriesrsin_clean,exitsrsin_clean=cleaninorder(entriesrsi,exitsrsi_n)
-    #     entriesrsi_clean1.astype(float).iplot(title='clean1')
-#     exitsrsin_clean1.astype(float).iplot()
-    # reverse=True if SHORT else False
-    #exitstpsl = vbt.OHLCSTX.run(entries,price['o'], price['h'],price['l'],price['c'],sl_stop=sl/100.,tp_stop=tp/100,stop_type=None,reverse=reverse).exits
-    #vbt.OHLCSTX.run(entries,open,high,low,close,sl_stop=Default(nan),sl_trail=Default(False),tp_stop=Default(nan),reverse=Default(False),stop_price=nan,stop_type=-1,short_name='ohlcstx',hide_params=None,hide_default=True
-    #run(cls, entries, open, high, low, close, sl_stop, sl_trail, tp_stop, reverse, stop_price, stop_type, short_name, hide_params, hide_default, **kwargs)
-    # exitsn_ts = vbt.OHLCSTX.run(entries=entriesn,open=price['o'], high=price['h'],low=price['l'],close=price['c'],sl_trail=ts/100.,reverse=reverse).exits
-    # exitsma_ts = vbt.OHLCSTX.run(entriesma,price['o'], price['h'],price['l'],price['c'],sl_trail=ts/100.,reverse=reverse).exits
-    # exitsrsi_ts= vbt.OHLCSTX.run(entriesrsi,price['o'], price['h'],price['l'],price['c'],sl_trail=ts/100.,reverse=reverse).exits
+
     pf={}
     if not SHORT:
         if runma:
@@ -401,11 +366,6 @@ def runsignal(price,signal,tp=6,sl=2,ts=5,n1=1,n2=100,rsil=30,rsih=50,rsilag=14,
                 pf['n_tpts']=vbt.Portfolio.from_signals(close=price['c'],open=price['o'],high=price['h'],low=price['l'], short_entries=entriesn, short_exits=False,sl_stop=ts/100.,tp_stop = tp/100., sl_trail=True ,**pf_kwargs)
             pf['n_tpsl']=vbt.Portfolio.from_signals(close=price['c'],open=price['o'],high=price['h'],low=price['l'], short_entries=entriesn, short_exits=False, sl_stop=sl/100.,tp_stop=tp/100.,**pf_kwargs)
     
-    if 'iplot' in request:
-        for k in pf:
-            fig=pf[k].plot(subplots=['drawdowns','trade_pnl','cum_returns'],title=k,width=1500)
-            ifigs.append(fig)
-
 
     if 'pf' in request:
         for k in pf:
@@ -433,50 +393,35 @@ def runsignal(price,signal,tp=6,sl=2,ts=5,n1=1,n2=100,rsil=30,rsih=50,rsilag=14,
 
     df = DF([{'k': k, 'sr': pf[k].sharpe_ratio(), 'tr': pf[k].total_return()} for k in pf.keys()])
 
-    res['ifigs']=ifigs
     res['df']=df
     res['dfs']=dfs
         
     return res
 
 
-def wrapped_runsignal(param_dict):
-    price = param_dict['price']
-    signal = param_dict['signal']
-    tp = param_dict['tp']
-    sl = param_dict['sl']
-    n1 = param_dict['n1']
-    n2 = param_dict['n2']
-    qtl = param_dict['qtl']
-    lbw = param_dict['lbw']
-    price = param_dict['price']
-    signal = param_dict['signal']
-    rsil = param_dict['rsil']
-    rsih = param_dict['rsih']
-    side = param_dict['side']
-    rsilag = param_dict['rsilag']
-    maf = param_dict['maf']
-    mas = param_dict['mas']
-    size = param_dict['size']
-    fees= param_dict['fees']
-    freq = param_dict['freq']
-    init_cash = param_dict['init_cash']
-    request = param_dict['request']
-    signalid = param_dict['signalid']
-    num_weeks = param_dict['num_weeks']
-    if side=='long':
-        short=False
-    elif side =='short':
-        short=True
-    else:
-        raise('side is either long and short')
+def wrapped_runsignal(params_and_data_dict):
+    param_dict = params_and_data_dict.copy()
+    args = inspect.signature(runsignal).parameters.keys()
+    param_dict['ts'] = param_dict['sl']
+    param_dict_passed = dict((k, param_dict[k]) for k in args)
+    ressig=runsignal(**param_dict_passed)
 
-    ressig=runsignal(price=price,signal=signal,tp=tp,sl=sl,ts=sl,n1=n1,n2=n2,rsil=rsil,rsih=rsih,rsilag=rsilag,
-                maf=maf,mas=mas,short=short,size=size,fees=fees,freq=freq,init_cash=init_cash,request=request)
     res=[]
-    for k in ressig:
-        resd={"signalid":signalid,"short":short,"tp":tp,"sl":sl,'k':k, 'lbw':lbw, 'qtl':qtl,
-            'sr':ressig[k].sharpe_ratio(),'n1':n1,'n2':n2,'tr':ressig[k].total_return(),'ntrades':ressig[k].trades.count()/num_weeks} 
+    del param_dict['price']
+    del param_dict['signal']
+    del param_dict['fees']
+    del param_dict['freq']
+    del param_dict['init_cash']
+    del param_dict['request']
+    del param_dict['signalid']
+    del param_dict['side']
+
+    for k in ressig: # put all keys blow 
+        ### remove price and signal
+        resd = param_dict.copy()
+        resd['k']=k
+        resd['sr']=ressig[k].sharpe_ratio()
+        resd['tr']=ressig[k].total_return()
+        resd['ntrades'] = ressig[k].trades.count()/param_dict['num_weeks']
         res.append(resd)
     return res
-    

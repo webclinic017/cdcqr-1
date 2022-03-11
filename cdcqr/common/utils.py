@@ -1,5 +1,4 @@
 import logging
-import multiprocessing
 import multiprocess as mp
 import os
 import pandas as pd
@@ -170,19 +169,22 @@ def load_df(name, file_format='pickle'):
         try:
             file_path = os.path.join(LOCAL_DATA_DIR, '{}.{}'.format(name, file_format))
             df = pd.read_pickle(file_path)
+            print(file_path, 'loaded')
             return df
-        except:
-            pass
+        except Exception as e:
+            print(e)
         
         try:
             file_path = os.path.join(LOCAL_DATA_DIR, '{}.{}'.format(name, 'pkl'))
             df = pd.read_pickle(file_path)
+            print(file_path, 'loaded')
             return df
-        except:
-            pass
+        except Exception as e:
+            print(e)
             
     elif file_format=='csv':
         df = pd.read_csv(file_path)
+        print(file_path, 'loaded')
         return df
 
 

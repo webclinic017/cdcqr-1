@@ -4,6 +4,8 @@ from cdcqr.common.config import GLASSNODE_API_KEY
 from functools import reduce
 from fuzzywuzzy import fuzz
 from cdcqr.common.utils import camel_case2snake_case
+import warnings
+warnings.filterwarnings("ignore")
 
 
 class GlassnodeData:
@@ -70,7 +72,7 @@ class GlassnodeData:
                 df = self._get_feature_df(f, asset, resolution)
                 dfs.append(df)
         df_merged = reduce(lambda  left,right: pd.merge(left,right,on=['t'],
-                                            how='outer'), dfs).set_index('t')
+                                            how='inner'), dfs).set_index('t')
         return df_merged
 
 
@@ -112,7 +114,7 @@ class GlassnodeData:
         
         print('loading {}/{} asset={}, resolution={}'.format(category, f, asset, resolution))
         res = requests.get('https://api.glassnode.com/v1/metrics/{}/{}'.format(category, f),
-            params={'a': asset, 'i': resolution, 'api_key': GLASSNODE_API_KEY})
+            params={'a': asset, 'i': resolution, 'api_key': GLASSNODE_API_KEY}, verify=False)
         
         df = pd.read_json(res.text, convert_dates=['t'])
         return df
